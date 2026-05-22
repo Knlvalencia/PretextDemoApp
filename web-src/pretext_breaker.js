@@ -144,44 +144,71 @@ function drawReactiveProse() {
     }
     var state = lineStates[lineIndex];
 
-    if (blocked.length > 0) {
+    if (blocked.length > 0 && !state.active) {
+      // Transition from inactive to active: PICK AND LOCK splitIndex
       var mainGap = blocked[0];
       for (var i = 1; i < blocked.length; i++) {
         if ((blocked[i].x2 - blocked[i].x1) > (mainGap.x2 - mainGap.x1)) mainGap = blocked[i];
       }
 
       var gapCenter = (mainGap.x1 + mainGap.x2) / 2;
-      var splitIndex = 0;
-      for (var i = 0; i < lineText.length; i++) {
-        if (ctx.measureText(lineText.substring(0, i)).width > (gapCenter - 14)) {
-          splitIndex = i;
-          break;
+      var targetCenter = gapCenter - 14;
+
+      // Robust Word Boundary detection
+      var indices = [0, lineText.length];
+      var re = /[\s\.,;:\-\!\?]+/g;
+      var m;
+      while ((m = re.exec(lineText)) !== null) {
+        indices.push(m.index);
+        indices.push(m.index + m[0].length);
+      }
+      var boundaries = [...new Set(indices)].sort((a, b) => a - b);
+
+      var bestIdx = 0;
+      var bestD = Infinity;
+      for (var i = 0; i < boundaries.length; i++) {
+        var w = ctx.measureText(lineText.substring(0, boundaries[i])).width;
+        var d = Math.abs(w - targetCenter);
+        if (d < bestD) {
+          bestD = d;
+          bestIdx = boundaries[i];
         }
-        splitIndex = i;
       }
 
-      // If this is a new split, initialize positions to the split point
-      // instead of the screen edges to prevent "flying in"
-      var anchorX = 14 + ctx.measureText(lineText.substring(0, splitIndex)).width;
-      if (!state.active) {
-        state.gapX1 = anchorX;
-        state.gapX2 = anchorX;
-      }
-
-      state.active = true;
-      state.splitIndex = splitIndex;
-      // Smooth parting: interpolate towards target gap positions (0.2 factor)
-      state.gapX1 += (mainGap.x1 - 5 - state.gapX1) * 0.2;
-      state.gapX2 += (mainGap.x2 + 5 - state.gapX2) * 0.2;
-    } else {
-      state.active = false;
+      state.splitIndex = bestIdx;
       var anchorX = 14 + ctx.measureText(lineText.substring(0, state.splitIndex)).width;
-      // Slower return to center (0.06 factor)
-      state.gapX1 += (anchorX - state.gapX1) * 0.06;
-      state.gapX2 += (anchorX - state.gapX2) * 0.06;
+      state.gapX1 = anchorX;
+      state.gapX2 = anchorX;
+      state.active = true;
     }
 
-    if (state.active || Math.abs(state.gapX1 - state.gapX2) > 0.5) {
+    if (state.active) {
+      var anchorX = 14 + ctx.measureText(lineText.substring(0, state.splitIndex)).width;
+      if (blocked.length > 0) {
+        var mainGap = blocked[0];
+        for (var i = 1; i < blocked.length; i++) {
+          if ((blocked[i].x2 - blocked[i].x1) > (mainGap.x2 - mainGap.x1)) mainGap = blocked[i];
+        }
+        // Active parting: move towards physical gap
+        state.gapX1 += (mainGap.x1 - 5 - state.gapX1) * 0.2;
+        state.gapX2 += (mainGap.x2 + 5 - state.gapX2) * 0.2;
+      } else {
+        // Obstacle gone: return to anchor
+        state.gapX1 += (anchorX - state.gapX1) * 0.1;
+        state.gapX2 += (anchorX - state.gapX2) * 0.1;
+
+        // Deactivate only when the gap is fully closed
+        if (Math.abs(state.gapX1 - anchorX) < 0.5 && Math.abs(state.gapX2 - anchorX) < 0.5) {
+          state.active = false;
+        }
+      }
+    } else {
+      // Fully inactive
+      state.gapX1 = 14 + ctx.measureText(lineText.substring(0, state.splitIndex)).width;
+      state.gapX2 = state.gapX1;
+    }
+
+    if (state.active || Math.abs(state.gapX1 - state.gapX2) > 1.0) {
       var leftPart = lineText.substring(0, state.splitIndex);
       var rightPart = lineText.substring(state.splitIndex);
       ctx.textAlign = "right";

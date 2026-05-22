@@ -3467,36 +3467,58 @@
             lineStates[lineIndex] = { gapX1: 14, gapX2: 14, splitIndex: 0, active: false };
           }
           var state2 = lineStates[lineIndex];
-          if (blocked.length > 0) {
+          if (blocked.length > 0 && !state2.active) {
             var mainGap = blocked[0];
             for (var i = 1; i < blocked.length; i++) {
               if (blocked[i].x2 - blocked[i].x1 > mainGap.x2 - mainGap.x1) mainGap = blocked[i];
             }
             var gapCenter = (mainGap.x1 + mainGap.x2) / 2;
-            var splitIndex = 0;
-            for (var i = 0; i < lineText.length; i++) {
-              if (ctx.measureText(lineText.substring(0, i)).width > gapCenter - 14) {
-                splitIndex = i;
-                break;
+            var targetCenter = gapCenter - 14;
+            var indices = [0, lineText.length];
+            var re = /[\s\.,;:\-\!\?]+/g;
+            var m;
+            while ((m = re.exec(lineText)) !== null) {
+              indices.push(m.index);
+              indices.push(m.index + m[0].length);
+            }
+            var boundaries = [...new Set(indices)].sort((a, b) => a - b);
+            var bestIdx = 0;
+            var bestD = Infinity;
+            for (var i = 0; i < boundaries.length; i++) {
+              var w = ctx.measureText(lineText.substring(0, boundaries[i])).width;
+              var d = Math.abs(w - targetCenter);
+              if (d < bestD) {
+                bestD = d;
+                bestIdx = boundaries[i];
               }
-              splitIndex = i;
             }
-            var anchorX = 14 + ctx.measureText(lineText.substring(0, splitIndex)).width;
-            if (!state2.active) {
-              state2.gapX1 = anchorX;
-              state2.gapX2 = anchorX;
-            }
-            state2.active = true;
-            state2.splitIndex = splitIndex;
-            state2.gapX1 += (mainGap.x1 - 5 - state2.gapX1) * 0.2;
-            state2.gapX2 += (mainGap.x2 + 5 - state2.gapX2) * 0.2;
-          } else {
-            state2.active = false;
+            state2.splitIndex = bestIdx;
             var anchorX = 14 + ctx.measureText(lineText.substring(0, state2.splitIndex)).width;
-            state2.gapX1 += (anchorX - state2.gapX1) * 0.06;
-            state2.gapX2 += (anchorX - state2.gapX2) * 0.06;
+            state2.gapX1 = anchorX;
+            state2.gapX2 = anchorX;
+            state2.active = true;
           }
-          if (state2.active || Math.abs(state2.gapX1 - state2.gapX2) > 0.5) {
+          if (state2.active) {
+            var anchorX = 14 + ctx.measureText(lineText.substring(0, state2.splitIndex)).width;
+            if (blocked.length > 0) {
+              var mainGap = blocked[0];
+              for (var i = 1; i < blocked.length; i++) {
+                if (blocked[i].x2 - blocked[i].x1 > mainGap.x2 - mainGap.x1) mainGap = blocked[i];
+              }
+              state2.gapX1 += (mainGap.x1 - 5 - state2.gapX1) * 0.2;
+              state2.gapX2 += (mainGap.x2 + 5 - state2.gapX2) * 0.2;
+            } else {
+              state2.gapX1 += (anchorX - state2.gapX1) * 0.1;
+              state2.gapX2 += (anchorX - state2.gapX2) * 0.1;
+              if (Math.abs(state2.gapX1 - anchorX) < 0.5 && Math.abs(state2.gapX2 - anchorX) < 0.5) {
+                state2.active = false;
+              }
+            }
+          } else {
+            state2.gapX1 = 14 + ctx.measureText(lineText.substring(0, state2.splitIndex)).width;
+            state2.gapX2 = state2.gapX1;
+          }
+          if (state2.active || Math.abs(state2.gapX1 - state2.gapX2) > 1) {
             var leftPart = lineText.substring(0, state2.splitIndex);
             var rightPart = lineText.substring(state2.splitIndex);
             ctx.textAlign = "right";
