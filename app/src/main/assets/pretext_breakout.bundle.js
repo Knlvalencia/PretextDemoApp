@@ -3329,7 +3329,8 @@
       var shake = 0;
       var isDraggingBall = false;
       var lineStates = [];
-      var textHitboxOffset = 2;
+      var textHitboxOffset = 32;
+      var ballSpeedMultiplier = 1;
       var FONT = "14px monospace";
       var TITLE_FONT = "700 30px monospace";
       var SMALL_FONT = "12px monospace";
@@ -3456,8 +3457,8 @@
         var obstacles = obstaclesForText();
         ctx.font = FONT;
         ctx.textBaseline = "top";
-        ctx.fillStyle = "rgba(130, 255, 220, 0.22)";
-        var proseBottom = Math.max(260, paddle.y - 60);
+        ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
+        var proseBottom = Math.max(260, paddle.y - 100);
         var lineIndex = 0;
         for (var y = 52; y < proseBottom; y += lineHeight) {
           var lineText = layout.lines[lineIndex % layout.lines.length].text;
@@ -3514,8 +3515,8 @@
         paddle.x += (paddle.target - paddle.x - paddle.w / 2) * 0.22;
         paddle.x = clamp(paddle.x, 12, W - paddle.w - 12);
         if (!isDraggingBall) {
-          ball.x += ball.vx * dt;
-          ball.y += ball.vy * dt;
+          ball.x += ball.vx * ballSpeedMultiplier * dt;
+          ball.y += ball.vy * ballSpeedMultiplier * dt;
         }
         ball.trail.push({ x: ball.x, y: ball.y, r: ball.r, a: 0.6 });
         if (ball.trail.length > 9) ball.trail.shift();
@@ -3534,7 +3535,7 @@
           var offset = (ball.x - (paddle.x + paddle.w / 2)) / (paddle.w / 2);
           ball.vx = offset * (3 + level * 0.12);
           ball.vy = -Math.abs(ball.vy) - 0.05;
-          burst(ball.x, paddle.y, "#eaffff", 8);
+          burst(ball.x, paddle.y, "#333", 8);
         }
         for (var i = 0; i < bricks.length; i++) {
           var b = bricks[i];
@@ -3591,52 +3592,59 @@
         ctx.restore();
       }
       function drawBackground() {
-        var g = ctx.createRadialGradient(W * 0.5, H * 0.12, 20, W * 0.5, H * 0.4, H * 0.75);
-        g.addColorStop(0, "#102a34");
-        g.addColorStop(0.62, "#071017");
-        g.addColorStop(1, "#020305");
-        ctx.fillStyle = g;
+        ctx.fillStyle = "#f4f1ea";
         ctx.fillRect(0, 0, W, H);
-        ctx.fillStyle = "rgba(255,255,255,0.45)";
+        ctx.fillStyle = "rgba(0, 0, 0, 0.03)";
         for (var i = 0; i < stars.length; i++) {
           var s = stars[i];
-          ctx.globalAlpha = s.a;
-          ctx.fillRect(s.x, s.y, s.s, s.s);
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.s * 0.5, 0, Math.PI * 2);
+          ctx.fill();
         }
-        ctx.globalAlpha = 1;
       }
       function drawHud() {
         var hudY = paddle.y - 45;
         ctx.textBaseline = "alphabetic";
         ctx.font = SMALL_FONT;
-        ctx.strokeStyle = "rgba(141, 247, 255, 0.3)";
+        ctx.strokeStyle = "rgba(0, 0, 0, 0.15)";
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(0, hudY - 25);
         ctx.lineTo(W, hudY - 25);
-        ctx.moveTo(0, hudY + 12);
-        ctx.lineTo(W, hudY + 12);
+        ctx.moveTo(0, hudY + 42);
+        ctx.lineTo(W, hudY + 42);
         ctx.stroke();
-        ctx.fillStyle = "rgba(141, 247, 255, 0.08)";
-        ctx.fillRect(0, hudY - 25, W, 37);
-        ctx.fillStyle = "#effff9";
+        ctx.fillStyle = "rgba(0, 0, 0, 0.02)";
+        ctx.fillRect(0, hudY - 25, W, 67);
+        ctx.fillStyle = "#2c2421";
         ctx.textAlign = "left";
         ctx.fillText("SCORE " + score, 20, hudY);
         ctx.textAlign = "center";
-        ctx.fillStyle = "#f7ff6b";
+        ctx.fillStyle = "#a63d40";
         ctx.fillText("LEVEL " + level + "  x" + combo, W / 2, hudY);
         ctx.textAlign = "right";
-        ctx.fillStyle = "#8df7ff";
+        ctx.fillStyle = "#2c2421";
         ctx.fillText("LIVES " + lives, W - 20, hudY);
-        var ctrlY = hudY + 22;
+        var ctrlY1 = hudY + 14;
         ctx.font = "10px monospace";
         ctx.textAlign = "left";
-        ctx.fillStyle = "rgba(141, 247, 255, 0.6)";
-        ctx.fillText("TEXT HITBOX: " + (ball ? ball.r + textHitboxOffset : "0"), 20, ctrlY);
-        ctx.font = "14px monospace";
-        ctx.fillStyle = "#f7ff6b";
-        ctx.fillText(" [-] ", 115, ctrlY);
-        ctx.fillText(" [+] ", 155, ctrlY);
+        ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+        ctx.fillText("HITBOX: " + (ball ? (ball.r + textHitboxOffset).toFixed(0) : "0"), 20, ctrlY1);
+        ctx.font = "12px monospace";
+        ctx.fillStyle = "#4a4a4a";
+        ctx.textAlign = "center";
+        ctx.fillText("[-]", 130, ctrlY1);
+        ctx.fillText("[+]", 165, ctrlY1);
+        var ctrlY2 = hudY + 32;
+        ctx.font = "10px monospace";
+        ctx.textAlign = "left";
+        ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+        ctx.fillText("SPEED:  " + ballSpeedMultiplier.toFixed(1) + "x", 20, ctrlY2);
+        ctx.font = "12px monospace";
+        ctx.fillStyle = "#4a4a4a";
+        ctx.textAlign = "center";
+        ctx.fillText("[-]", 130, ctrlY2);
+        ctx.fillText("[+]", 165, ctrlY2);
       }
       function drawBricks() {
         ctx.textAlign = "center";
@@ -3645,57 +3653,48 @@
         for (var i = 0; i < bricks.length; i++) {
           var b = bricks[i];
           if (!b.alive) continue;
-          var color = "hsl(" + b.hue + ", 95%, 62%)";
-          ctx.shadowBlur = 16;
-          ctx.shadowColor = color;
+          var color = "hsl(" + b.hue + ", 70%, 85%)";
           ctx.fillStyle = color;
-          roundRect(b.x, b.y, b.w, b.h, 5);
-          ctx.fill();
-          ctx.shadowBlur = 0;
-          ctx.fillStyle = "#061014";
-          ctx.fillText(b.word, b.x + b.w / 2, b.y + b.h / 2 + 1);
+          ctx.save();
+          ctx.translate(b.x + b.w / 2, b.y + b.h / 2);
+          ctx.rotate((i % 3 - 1) * 0.02);
+          ctx.fillRect(-b.w / 2, -b.h / 2, b.w, b.h);
+          ctx.fillStyle = "rgba(0,0,0,0.1)";
+          ctx.fillRect(-b.w / 2, b.h / 2, b.w, 2);
+          ctx.fillStyle = "#333";
+          ctx.fillText(b.word, 0, 1);
+          ctx.restore();
         }
       }
       function drawPaddle() {
         var y = paddle.y + paddle.h / 2;
-        var g = ctx.createLinearGradient(paddle.x, y, paddle.x + paddle.w, y);
-        g.addColorStop(0, "#8df7ff");
-        g.addColorStop(0.48, "#ffffff");
-        g.addColorStop(1, "#f7ff6b");
-        ctx.lineCap = "round";
-        ctx.shadowBlur = 18;
-        ctx.shadowColor = "#8df7ff";
-        ctx.strokeStyle = g;
-        ctx.lineWidth = 9;
-        ctx.beginPath();
-        ctx.moveTo(paddle.x + 8, y);
-        ctx.lineTo(paddle.x + paddle.w - 8, y);
-        ctx.stroke();
+        ctx.fillStyle = "#a63d40";
+        ctx.shadowBlur = 4;
+        ctx.shadowColor = "rgba(0,0,0,0.3)";
+        ctx.fillRect(paddle.x, paddle.y, paddle.w, paddle.h);
+        ctx.fillStyle = "rgba(255,255,255,0.2)";
+        ctx.fillRect(paddle.x + paddle.w * 0.1, paddle.y, paddle.w * 0.05, paddle.h);
+        ctx.fillRect(paddle.x + paddle.w * 0.85, paddle.y, paddle.w * 0.05, paddle.h);
         ctx.shadowBlur = 0;
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = "rgba(255,255,255,0.7)";
-        ctx.beginPath();
-        ctx.moveTo(paddle.x + 14, y - 1);
-        ctx.lineTo(paddle.x + paddle.w - 14, y - 1);
-        ctx.stroke();
       }
       function drawBall() {
         for (var i = 0; i < ball.trail.length; i++) {
           var t = ball.trail[i];
-          ctx.globalAlpha = i / ball.trail.length * 0.35;
-          ctx.fillStyle = "#8df7ff";
+          ctx.globalAlpha = i / ball.trail.length * 0.2;
+          ctx.fillStyle = "#000";
           ctx.beginPath();
-          ctx.arc(t.x, t.y, t.r + i * 0.25, 0, Math.PI * 2);
+          ctx.arc(t.x, t.y, t.r - (ball.trail.length - i) * 0.5, 0, Math.PI * 2);
           ctx.fill();
         }
         ctx.globalAlpha = 1;
-        ctx.shadowBlur = 22;
-        ctx.shadowColor = "#ffffff";
-        ctx.fillStyle = "#ffffff";
+        ctx.fillStyle = "#000";
         ctx.beginPath();
         ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
         ctx.fill();
-        ctx.shadowBlur = 0;
+        ctx.fillStyle = "rgba(255,255,255,0.3)";
+        ctx.beginPath();
+        ctx.arc(ball.x - 2, ball.y - 2, 2, 0, Math.PI * 2);
+        ctx.fill();
       }
       function drawParticles() {
         ctx.font = "700 13px monospace";
@@ -3710,34 +3709,19 @@
         ctx.globalAlpha = 1;
       }
       function drawOverlay(title, action, sub) {
-        ctx.fillStyle = "rgba(2, 4, 7, 0.72)";
+        ctx.fillStyle = "rgba(244, 241, 234, 0.85)";
         ctx.fillRect(0, 0, W, H);
         ctx.textAlign = "center";
         ctx.textBaseline = "alphabetic";
         ctx.font = TITLE_FONT;
-        ctx.shadowBlur = 24;
-        ctx.shadowColor = "#8df7ff";
-        ctx.fillStyle = "#f7ff6b";
+        ctx.fillStyle = "#1a1a1a";
         ctx.fillText(title, W / 2, H * 0.42);
-        ctx.shadowBlur = 0;
         ctx.font = "16px monospace";
-        ctx.fillStyle = "#e8fff8";
+        ctx.fillStyle = "#333";
         ctx.fillText(action, W / 2, H * 0.42 + 38);
         ctx.font = SMALL_FONT;
-        ctx.fillStyle = "#8aa2a8";
+        ctx.fillStyle = "#666";
         ctx.fillText(sub, W / 2, H * 0.42 + 62);
-      }
-      function roundRect(x, y, w, h, r) {
-        ctx.beginPath();
-        ctx.moveTo(x + r, y);
-        ctx.lineTo(x + w - r, y);
-        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-        ctx.lineTo(x + w, y + h - r);
-        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-        ctx.lineTo(x + r, y + h);
-        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-        ctx.lineTo(x, y + r);
-        ctx.quadraticCurveTo(x, y, x + r, y);
       }
       function pointerX(event) {
         if (event.touches && event.touches.length) return event.touches[0].clientX;
@@ -3751,14 +3735,27 @@
         var x = pointerX(event);
         var y = pointerY(event);
         var hudY = paddle.y - 45;
-        var ctrlY = hudY + 22;
-        if (x > 110 && x < 150 && y > ctrlY - 20 && y < ctrlY + 10) {
-          textHitboxOffset = Math.max(-7, textHitboxOffset - 2);
-          return;
+        var ctrlY1 = hudY + 14;
+        if (y > ctrlY1 - 15 && y < ctrlY1 + 10) {
+          if (x > 115 && x < 145) {
+            textHitboxOffset = Math.max(-7, textHitboxOffset - 1);
+            return;
+          }
+          if (x > 150 && x < 180) {
+            textHitboxOffset += 1;
+            return;
+          }
         }
-        if (x > 150 && x < 200 && y > ctrlY - 20 && y < ctrlY + 10) {
-          textHitboxOffset += 2;
-          return;
+        var ctrlY2 = hudY + 32;
+        if (y > ctrlY2 - 15 && y < ctrlY2 + 10) {
+          if (x > 115 && x < 145) {
+            ballSpeedMultiplier = Math.max(0.1, ballSpeedMultiplier - 0.1);
+            return;
+          }
+          if (x > 150 && x < 180) {
+            ballSpeedMultiplier = Math.min(3, ballSpeedMultiplier + 0.1);
+            return;
+          }
         }
         if (ball) {
           var dx = x - ball.x;

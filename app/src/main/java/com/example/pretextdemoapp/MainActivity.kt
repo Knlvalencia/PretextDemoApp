@@ -43,7 +43,7 @@ fun PretextBreakoutApp() {
                 settings.mediaPlaybackRequiresUserGesture = false
                 isVerticalScrollBarEnabled = false
                 isHorizontalScrollBarEnabled = false
-                setBackgroundColor(android.graphics.Color.BLACK)
+                setBackgroundColor(android.graphics.Color.parseColor("#f4f1ea"))
                 loadUrl("file:///android_asset/pretext_breakout.html")
             }
         }

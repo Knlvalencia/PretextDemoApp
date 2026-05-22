@@ -6,7 +6,7 @@ var DPR = 1, W = 0, H = 0;
 var state = "title";
 var score = 0, best = 0, lives = 3, level = 1, combo = 1;
 var paddle, ball, bricks = [], particles = [], stars = [], textCache = {};
-var last = 0, shake = 0, isDraggingBall = false, lineStates = [], textHitboxOffset = 2, ballSpeedMultiplier = 1.0;
+var last = 0, shake = 0, isDraggingBall = false, lineStates = [], textHitboxOffset = 32, ballSpeedMultiplier = 1.0;
 
 var FONT = "14px monospace";
 var TITLE_FONT = "700 30px monospace";
@@ -131,8 +131,8 @@ function drawReactiveProse() {
   var obstacles = obstaclesForText();
   ctx.font = FONT;
   ctx.textBaseline = "top";
-  ctx.fillStyle = "rgba(130, 255, 220, 0.22)";
-  var proseBottom = Math.max(260, paddle.y - 60);
+  ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
+  var proseBottom = Math.max(260, paddle.y - 100);
 
   var lineIndex = 0;
   for (var y = 52; y < proseBottom; y += lineHeight) {
@@ -237,7 +237,7 @@ function update(dt) {
     var offset = (ball.x - (paddle.x + paddle.w / 2)) / (paddle.w / 2);
     ball.vx = offset * (3.0 + level * 0.12);
     ball.vy = -Math.abs(ball.vy) - 0.05;
-    burst(ball.x, paddle.y, "#eaffff", 8);
+    burst(ball.x, paddle.y, "#333", 8);
   }
   for (var i = 0; i < bricks.length; i++) {
     var b = bricks[i];
@@ -295,19 +295,18 @@ function draw() {
 }
 
 function drawBackground() {
-  var g = ctx.createRadialGradient(W * 0.5, H * 0.12, 20, W * 0.5, H * 0.4, H * 0.75);
-  g.addColorStop(0, "#102a34");
-  g.addColorStop(0.62, "#071017");
-  g.addColorStop(1, "#020305");
-  ctx.fillStyle = g;
+  // Cream paper background
+  ctx.fillStyle = "#f4f1ea";
   ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = "rgba(255,255,255,0.45)";
+
+  // Subtle paper texture (simulated with random dots)
+  ctx.fillStyle = "rgba(0, 0, 0, 0.03)";
   for (var i = 0; i < stars.length; i++) {
     var s = stars[i];
-    ctx.globalAlpha = s.a;
-    ctx.fillRect(s.x, s.y, s.s, s.s);
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.s * 0.5, 0, Math.PI * 2);
+    ctx.fill();
   }
-  ctx.globalAlpha = 1;
 }
 
 function drawHud() {
@@ -315,37 +314,37 @@ function drawHud() {
   ctx.textBaseline = "alphabetic";
   ctx.font = SMALL_FONT;
 
-  // Draw border lines
-  ctx.strokeStyle = "rgba(141, 247, 255, 0.3)";
+  // Draw border lines - looks like a notebook margin or header
+  ctx.strokeStyle = "rgba(0, 0, 0, 0.15)";
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(0, hudY - 25);
   ctx.lineTo(W, hudY - 25);
-  ctx.moveTo(0, hudY + 42); // Increased height to fit two rows of controls
+  ctx.moveTo(0, hudY + 42);
   ctx.lineTo(W, hudY + 42);
   ctx.stroke();
 
-  ctx.fillStyle = "rgba(141, 247, 255, 0.08)";
+  ctx.fillStyle = "rgba(0, 0, 0, 0.02)";
   ctx.fillRect(0, hudY - 25, W, 67);
 
-  ctx.fillStyle = "#effff9";
+  ctx.fillStyle = "#2c2421";
   ctx.textAlign = "left";
   ctx.fillText("SCORE " + score, 20, hudY);
   ctx.textAlign = "center";
-  ctx.fillStyle = "#f7ff6b";
+  ctx.fillStyle = "#a63d40"; // Deep red for emphasis
   ctx.fillText("LEVEL " + level + "  x" + combo, W / 2, hudY);
   ctx.textAlign = "right";
-  ctx.fillStyle = "#8df7ff";
+  ctx.fillStyle = "#2c2421";
   ctx.fillText("LIVES " + lives, W - 20, hudY);
 
   // Debug controls row 1: Hitbox
   var ctrlY1 = hudY + 14;
   ctx.font = "10px monospace";
   ctx.textAlign = "left";
-  ctx.fillStyle = "rgba(141, 247, 255, 0.7)";
-  ctx.fillText("TEXT HITBOX: " + (ball ? (ball.r + textHitboxOffset).toFixed(0) : "0"), 20, ctrlY1);
+  ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+  ctx.fillText("HITBOX: " + (ball ? (ball.r + textHitboxOffset).toFixed(0) : "0"), 20, ctrlY1);
   ctx.font = "12px monospace";
-  ctx.fillStyle = "#f7ff6b";
+  ctx.fillStyle = "#4a4a4a";
   ctx.textAlign = "center";
   ctx.fillText("[-]", 130, ctrlY1);
   ctx.fillText("[+]", 165, ctrlY1);
@@ -354,10 +353,10 @@ function drawHud() {
   var ctrlY2 = hudY + 32;
   ctx.font = "10px monospace";
   ctx.textAlign = "left";
-  ctx.fillStyle = "rgba(141, 247, 255, 0.7)";
-  ctx.fillText("BALL SPEED:  " + ballSpeedMultiplier.toFixed(1) + "x", 20, ctrlY2);
+  ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+  ctx.fillText("SPEED:  " + ballSpeedMultiplier.toFixed(1) + "x", 20, ctrlY2);
   ctx.font = "12px monospace";
-  ctx.fillStyle = "#f7ff6b";
+  ctx.fillStyle = "#4a4a4a";
   ctx.textAlign = "center";
   ctx.fillText("[-]", 130, ctrlY2);
   ctx.fillText("[+]", 165, ctrlY2);
@@ -370,51 +369,56 @@ function drawBricks() {
   for (var i = 0; i < bricks.length; i++) {
     var b = bricks[i];
     if (!b.alive) continue;
-    var color = "hsl(" + b.hue + ", 95%, 62%)";
-    ctx.shadowBlur = 16;
-    ctx.shadowColor = color;
+    // Sticky note / highlighter colors
+    var color = "hsl(" + b.hue + ", 70%, 85%)";
     ctx.fillStyle = color;
-    roundRect(b.x, b.y, b.w, b.h, 5);
-    ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = "#061014";
-    ctx.fillText(b.word, b.x + b.w / 2, b.y + b.h / 2 + 1);
+    // Slightly rotated for "sticky note" look
+    ctx.save();
+    ctx.translate(b.x + b.w / 2, b.y + b.h / 2);
+    ctx.rotate((i % 3 - 1) * 0.02);
+    ctx.fillRect(-b.w / 2, -b.h / 2, b.w, b.h);
+
+    // Bottom shadow for paper feel
+    ctx.fillStyle = "rgba(0,0,0,0.1)";
+    ctx.fillRect(-b.w / 2, b.h / 2, b.w, 2);
+
+    ctx.fillStyle = "#333";
+    ctx.fillText(b.word, 0, 1);
+    ctx.restore();
   }
 }
 
 function drawPaddle() {
   var y = paddle.y + paddle.h / 2;
-  var g = ctx.createLinearGradient(paddle.x, y, paddle.x + paddle.w, y);
-  g.addColorStop(0, "#8df7ff"); g.addColorStop(0.48, "#ffffff"); g.addColorStop(1, "#f7ff6b");
-  ctx.lineCap = "round";
-  ctx.shadowBlur = 18; ctx.shadowColor = "#8df7ff";
-  ctx.strokeStyle = g;
-  ctx.lineWidth = 9;
-  ctx.beginPath();
-  ctx.moveTo(paddle.x + 8, y);
-  ctx.lineTo(paddle.x + paddle.w - 8, y);
-  ctx.stroke();
+  // A red ribbon bookmark
+  ctx.fillStyle = "#a63d40";
+  ctx.shadowBlur = 4;
+  ctx.shadowColor = "rgba(0,0,0,0.3)";
+  ctx.fillRect(paddle.x, paddle.y, paddle.w, paddle.h);
+
+  // Ribbon detail (v-shape cut at ends or just a line)
+  ctx.fillStyle = "rgba(255,255,255,0.2)";
+  ctx.fillRect(paddle.x + paddle.w * 0.1, paddle.y, paddle.w * 0.05, paddle.h);
+  ctx.fillRect(paddle.x + paddle.w * 0.85, paddle.y, paddle.w * 0.05, paddle.h);
+
   ctx.shadowBlur = 0;
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = "rgba(255,255,255,0.7)";
-  ctx.beginPath();
-  ctx.moveTo(paddle.x + 14, y - 1);
-  ctx.lineTo(paddle.x + paddle.w - 14, y - 1);
-  ctx.stroke();
 }
 
 function drawBall() {
   for (var i = 0; i < ball.trail.length; i++) {
     var t = ball.trail[i];
-    ctx.globalAlpha = i / ball.trail.length * 0.35;
-    ctx.fillStyle = "#8df7ff";
-    ctx.beginPath(); ctx.arc(t.x, t.y, t.r + i * 0.25, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = i / ball.trail.length * 0.2;
+    ctx.fillStyle = "#000"; // Ink trail
+    ctx.beginPath(); ctx.arc(t.x, t.y, t.r - (ball.trail.length - i) * 0.5, 0, Math.PI * 2); ctx.fill();
   }
   ctx.globalAlpha = 1;
-  ctx.shadowBlur = 22; ctx.shadowColor = "#ffffff";
-  ctx.fillStyle = "#ffffff";
+  // Ink drop
+  ctx.fillStyle = "#000";
   ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2); ctx.fill();
-  ctx.shadowBlur = 0;
+
+  // Highlight on ink drop
+  ctx.fillStyle = "rgba(255,255,255,0.3)";
+  ctx.beginPath(); ctx.arc(ball.x - 2, ball.y - 2, 2, 0, Math.PI * 2); ctx.fill();
 }
 
 function drawParticles() {
@@ -431,20 +435,18 @@ function drawParticles() {
 }
 
 function drawOverlay(title, action, sub) {
-  ctx.fillStyle = "rgba(2, 4, 7, 0.72)";
+  ctx.fillStyle = "rgba(244, 241, 234, 0.85)";
   ctx.fillRect(0, 0, W, H);
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
   ctx.font = TITLE_FONT;
-  ctx.shadowBlur = 24; ctx.shadowColor = "#8df7ff";
-  ctx.fillStyle = "#f7ff6b";
+  ctx.fillStyle = "#1a1a1a";
   ctx.fillText(title, W / 2, H * 0.42);
-  ctx.shadowBlur = 0;
   ctx.font = "16px monospace";
-  ctx.fillStyle = "#e8fff8";
+  ctx.fillStyle = "#333";
   ctx.fillText(action, W / 2, H * 0.42 + 38);
   ctx.font = SMALL_FONT;
-  ctx.fillStyle = "#8aa2a8";
+  ctx.fillStyle = "#666";
   ctx.fillText(sub, W / 2, H * 0.42 + 62);
 }
 
